@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Bulletin météo – Centrale Méditerranée</title>
+
+<style>
+
+body{
+font-family: system-ui;
+margin:0;
+background:#1e2b3c;
+color:white;
+display:flex;
+flex-direction:column;
+align-items:center;
+}
+
+header{
+padding:30px;
+text-align:center;
+}
+
+h1{
+margin-bottom:10px;
+}
+
+.card{
+background:rgba(255,255,255,0.08);
+border-radius:12px;
+padding:20px;
+margin:10px;
+width:320px;
+backdrop-filter:blur(10px);
+}
+
+.grid{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+}
+
+.big{
+font-size:48px;
+font-weight:700;
+}
+
+.label{
+opacity:0.8;
+}
+
+.row{
+display:flex;
+justify-content:space-between;
+margin:6px 0;
+}
+
+footer{
+margin-top:30px;
+opacity:0.6;
+}
+
+</style>
+</head>
+
+<body>
+
+<header>
+
+<h1>Bulletin météo</h1>
+
+<div>Centrale Méditerranée</div>
+
+<div id="update">Chargement...</div>
+
+</header>
+
+
+<div class="grid">
+
+<div class="card">
+
+<div class="label">Température</div>
+
+<div class="big" id="temp">--</div>
+
+<div class="row">
+<span>Ressenti</span>
+<span id="app">--</span>
+</div>
+
+<div class="row">
+<span>Humidité</span>
+<span id="hum">--</span>
+</div>
+
+<div class="row">
+<span>Vent</span>
+<span id="wind">--</span>
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="label">Atmosphère</div>
+
+<div class="row">
+<span>Pression</span>
+<span id="press">--</span>
+</div>
+
+<div class="row">
+<span>Nuages</span>
+<span id="cloud">--</span>
+</div>
+
+<div class="row">
+<span>Pluie</span>
+<span id="rain">--</span>
+</div>
+
+<div class="row">
+<span>UV</span>
+<span id="uv">--</span>
+</div>
+
+</div>
+
+
+<div class="card">
+
+<div class="label">Aujourd’hui</div>
+
+<div class="row">
+<span>Min</span>
+<span id="tmin">--</span>
+</div>
+
+<div class="row">
+<span>Max</span>
+<span id="tmax">--</span>
+</div>
+
+<div class="row">
+<span>Lever soleil</span>
+<span id="sunrise">--</span>
+</div>
+
+<div class="row">
+<span>Coucher soleil</span>
+<span id="sunset">--</span>
+</div>
+
+</div>
+
+</div>
+
+<footer>
+
+Projet météo – Centrale Méditerranée
+
+</footer>
+
+<script>
+
+const url =
+"https://api.open-meteo.com/v1/forecast?latitude=43.341&longitude=5.438472&current=temperature_2m,apparent_temperature,relative_humidity_2m,pressure_msl,wind_speed_10m,cloud_cover,precipitation,uv_index&daily=temperature_2m_max,temperature_2m_min,sunrise,sunset&timezone=Europe%2FParis";
+
+async function load(){
+
+const r = await fetch(url);
+
+const d = await r.json();
+
+const c = d.current;
+const day = d.daily;
+
+document.getElementById("temp").textContent =
+c.temperature_2m + "°C";
+
+document.getElementById("app").textContent =
+c.apparent_temperature + "°C";
+
+document.getElementById("hum").textContent =
+c.relative_humidity_2m + "%";
+
+document.getElementById("wind").textContent =
+c.wind_speed_10m + " km/h";
+
+document.getElementById("press").textContent =
+c.pressure_msl + " hPa";
+
+document.getElementById("cloud").textContent =
+c.cloud_cover + "%";
+
+document.getElementById("rain").textContent =
+c.precipitation + " mm";
+
+document.getElementById("uv").textContent =
+c.uv_index;
+
+document.getElementById("tmin").textContent =
+day.temperature_2m_min[0] + "°C";
+
+document.getElementById("tmax").textContent =
+day.temperature_2m_max[0] + "°C";
+
+document.getElementById("sunrise").textContent =
+new Date(day.sunrise[0]).toLocaleTimeString("fr-FR");
+
+document.getElementById("sunset").textContent =
+new Date(day.sunset[0]).toLocaleTimeString("fr-FR");
+
+document.getElementById("update").textContent =
+"Dernière mise à jour : " + new Date().toLocaleTimeString("fr-FR");
+
+}
+
+load();
+
+setInterval(load, 600000);
+
+</script>
+
+</body>
+
+</html>
