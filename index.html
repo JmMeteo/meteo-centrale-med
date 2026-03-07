@@ -1,69 +1,589 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
-
 <head>
-<meta charset="UTF-8">
-<title>Bulletin météo Centrale</title>
-
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bulletin météo ultime</title>
 <style>
+:root{
+  --text: rgba(255,255,255,.97);
+  --muted: rgba(255,255,255,.78);
+  --border: rgba(255,255,255,.15);
+  --shadow: 0 10px 28px rgba(0,0,0,.18);
+  --good: rgba(110,255,170,.22);
+  --warn: rgba(255,215,120,.22);
+  --bad: rgba(255,120,120,.22);
+  --glass-top: rgba(255,255,255,.15);
+  --glass-bottom: rgba(255,255,255,.08);
+  --panel-tint: rgba(12,24,40,.12);
+}
+
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
 body{
-font-family: Arial, sans-serif;
-background: linear-gradient(#6bbcff,#e9f7ff);
-margin:0;
-padding:40px;
-text-align:center;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+  color:var(--text);
+  min-height:100vh;
+  overflow:hidden;
+  background:#0e1728;
+  transition:background .8s ease, color .5s ease;
 }
 
-.container{
-background:white;
-padding:30px;
-border-radius:12px;
-max-width:500px;
-margin:auto;
-box-shadow:0 10px 25px rgba(0,0,0,0.2);
+.bg{
+  position:fixed; inset:0; z-index:-10;
+  transition:background .9s ease, filter .9s ease;
 }
 
-h1{
-margin-top:0;
+.vignette{
+  position:fixed; inset:0; z-index:-9; pointer-events:none;
+  background:
+    radial-gradient(circle at center, transparent 36%, rgba(0,0,0,.10) 100%);
 }
 
-.value{
-font-size:40px;
-font-weight:bold;
+.haze{
+  position:fixed; inset:0; z-index:-8; pointer-events:none; opacity:.16;
+  background:
+    radial-gradient(700px 420px at 20% 25%, rgba(255,255,255,.08), transparent 60%),
+    radial-gradient(680px 420px at 80% 18%, rgba(255,255,255,.05), transparent 60%);
 }
 
-.label{
-color:#555;
+.sun-glow{
+  position:fixed; inset:0; z-index:-7; pointer-events:none; opacity:0;
+  transition:opacity .8s ease;
+}
+
+.cloud-layer{
+  position:fixed; inset:0; z-index:-6; pointer-events:none; overflow:hidden;
+}
+
+.cloud{
+  position:absolute;
+  border-radius:999px;
+  filter:blur(5px);
+  background:
+    radial-gradient(circle at 30% 45%, rgba(255,255,255,.72) 0 35%, rgba(255,255,255,.28) 50%, transparent 74%),
+    radial-gradient(circle at 50% 35%, rgba(255,255,255,.74) 0 30%, rgba(255,255,255,.26) 50%, transparent 73%),
+    radial-gradient(circle at 70% 50%, rgba(255,255,255,.68) 0 28%, rgba(255,255,255,.24) 48%, transparent 72%);
+  animation: drift linear infinite;
+}
+
+.rain-layer, .stars-layer, .lightning-layer{
+  position:fixed; inset:0; pointer-events:none;
+}
+
+.rain-layer{
+  opacity:0; transition:opacity .5s ease;
+  background-image:repeating-linear-gradient(
+    105deg,
+    rgba(255,255,255,.14) 0px,
+    rgba(255,255,255,.14) 1px,
+    transparent 1px,
+    transparent 18px
+  );
+  animation: rainMove 1.1s linear infinite;
+}
+
+.stars-layer{
+  opacity:0; transition:opacity .8s ease;
+  background-image:
+    radial-gradient(circle at 10% 20%, rgba(255,255,255,.9) 0 1px, transparent 2px),
+    radial-gradient(circle at 21% 11%, rgba(255,255,255,.8) 0 1px, transparent 2px),
+    radial-gradient(circle at 36% 26%, rgba(255,255,255,.85) 0 1px, transparent 2px),
+    radial-gradient(circle at 53% 15%, rgba(255,255,255,.9) 0 1px, transparent 2px),
+    radial-gradient(circle at 68% 8%, rgba(255,255,255,.75) 0 1px, transparent 2px),
+    radial-gradient(circle at 81% 23%, rgba(255,255,255,.86) 0 1px, transparent 2px),
+    radial-gradient(circle at 92% 12%, rgba(255,255,255,.75) 0 1px, transparent 2px);
+  animation: twinkle 6s ease-in-out infinite;
+}
+
+.lightning-layer{opacity:0}
+body.rainy .rain-layer{opacity:.22}
+body.night .stars-layer{opacity:.70}
+body.stormy .lightning-layer{animation: lightningFlash 7s infinite}
+
+body.phase-dawn .bg{
+  background:
+    radial-gradient(620px 460px at 82% 18%, rgba(255,220,160,.92), rgba(255,220,160,.22) 15%, transparent 35%),
+    linear-gradient(180deg, #ffb98a 0%, #f6c5b5 20%, #a7cfff 58%, #dff2ff 100%);
+}
+body.phase-day .bg{
+  background:
+    radial-gradient(560px 460px at 82% 18%, rgba(255,246,180,.92), rgba(255,246,180,.24) 16%, transparent 35%),
+    linear-gradient(180deg, #69baff 0%, #9ed5ff 48%, #e2f5ff 100%);
+}
+body.phase-noon .bg{
+  background:
+    radial-gradient(620px 520px at 50% 12%, rgba(255,250,205,.62), rgba(255,250,205,.14) 18%, transparent 40%),
+    linear-gradient(180deg, #54b0ff 0%, #8cd0ff 46%, #ddf3ff 100%);
+}
+body.phase-golden .bg{
+  background:
+    radial-gradient(620px 460px at 78% 20%, rgba(255,196,124,.88), rgba(255,196,124,.20) 15%, transparent 35%),
+    linear-gradient(180deg, #f39c7b 0%, #f2b38d 26%, #9dc0e8 65%, #dbeaf8 100%);
+}
+body.phase-night .bg{
+  background:
+    radial-gradient(420px 360px at 82% 18%, rgba(244,246,255,.88), rgba(244,246,255,.13) 10%, transparent 24%),
+    linear-gradient(180deg, #071225 0%, #0c1d39 58%, #132b53 100%);
+}
+
+body.phase-dawn .sun-glow,
+body.phase-day .sun-glow,
+body.phase-noon .sun-glow,
+body.phase-golden .sun-glow{opacity:1}
+
+body.phase-dawn .sun-glow{
+  background:radial-gradient(circle at 82% 18%, rgba(255,225,175,.22), transparent 22%);
+}
+body.phase-day .sun-glow{
+  background:radial-gradient(circle at 82% 18%, rgba(255,244,188,.18), transparent 22%);
+}
+body.phase-noon .sun-glow{
+  background:radial-gradient(circle at 50% 12%, rgba(255,247,195,.16), transparent 24%);
+}
+body.phase-golden .sun-glow{
+  background:radial-gradient(circle at 78% 20%, rgba(255,200,140,.16), transparent 22%);
+}
+
+body.cloudy .bg{filter:saturate(.94)}
+body.rainy .bg{filter:saturate(.90) brightness(.94)}
+body.stormy .bg{filter:saturate(.84) brightness(.86) contrast(1.02)}
+
+.wrap{
+  max-width:min(1500px, 96vw);
+  min-height:100vh;
+  margin:0 auto;
+  padding:10px 12px 8px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.title{margin:0; font-size:22px; line-height:1.03}
+.subtitle{margin:4px 0 0; color:var(--muted); font-size:12px}
+.meta{margin-top:4px; color:var(--muted); font-size:11px; line-height:1.35}
+
+.badges{display:flex; gap:7px; flex-wrap:wrap}
+.pill{
+  border:1px solid var(--border);
+  background:rgba(10,18,30,.18);
+  border-radius:999px;
+  padding:5px 9px;
+  display:flex; align-items:center; gap:7px;
+  backdrop-filter:blur(8px);
+  font-size:11px;
+}
+.pill.ok{background:var(--good)}
+.pill.warn{background:var(--warn)}
+.pill.bad{background:var(--bad)}
+.dot{width:8px;height:8px;border-radius:999px;background:#a7c9ff}
+
+.grid-main{
+  display:grid;
+  grid-template-columns:1.25fr .9fr .9fr;
+  gap:8px;
+  min-height:0;
+}
+
+.grid-wide{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  min-height:0;
+}
+
+.card{
+  border:1px solid var(--border);
+  border-radius:18px;
+  background:
+    linear-gradient(180deg, var(--glass-top), var(--glass-bottom)),
+    linear-gradient(180deg, var(--panel-tint), rgba(12,24,40,.06));
+  box-shadow:var(--shadow);
+  padding:10px;
+  backdrop-filter:blur(12px);
+  position:relative;
+  overflow:hidden;
+}
+
+.card::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  background:rgba(8,16,28,.05);
+  pointer-events:none;
+}
+
+.card > *{
+  position:relative;
+  z-index:1;
+}
+
+.card.hero{min-height:232px}
+
+.card h3{
+  margin:0 0 6px;
+  font-size:14px;
+  font-weight:740;
+}
+
+.label{color:var(--muted); font-size:11px; margin-bottom:6px}
+.headline{font-size:18px; font-weight:780; margin:0 0 3px}
+.value-big{
+  display:flex; align-items:flex-end; gap:5px;
+  font-size:42px; font-weight:820; line-height:1;
+}
+.unit{font-size:13px; color:var(--muted); margin-bottom:5px}
+
+.row{
+  display:flex; justify-content:space-between; align-items:center; gap:8px;
+  font-size:12px; color:var(--muted); margin-top:5px;
+}
+.row strong{color:var(--text)}
+
+.kpi2{display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:8px}
+.kpi4{display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:8px}
+
+.mini{
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:13px;
+  background:rgba(7,14,24,.10);
+  padding:8px;
+}
+.mini .num{font-size:20px; font-weight:760}
+
+.advice{
+  margin-top:8px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:13px;
+  padding:8px;
+  background:rgba(7,14,24,.10);
+  font-size:12px;
+  color:var(--text);
+}
+
+.quick-grid{
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:7px;
+  margin-top:8px;
+}
+
+.quick{
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:13px;
+  background:rgba(7,14,24,.10);
+  padding:8px;
+}
+.quick .t{font-size:11px;color:var(--muted)}
+.quick .w{
+  font-size:12px;
+  font-weight:700;
+  margin:3px 0;
+  line-height:1.1;
+}
+.quick .n{font-size:18px;font-weight:760}
+
+.forecast-grid-12{
+  display:grid;
+  grid-template-columns:repeat(12, minmax(0, 1fr));
+  gap:7px;
+}
+
+.forecast-grid-5{
+  display:grid;
+  grid-template-columns:repeat(5, minmax(0, 1fr));
+  gap:7px;
+}
+
+.hour-card, .day-card{
+  min-width:0;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:13px;
+  background:rgba(7,14,24,.10);
+  padding:7px;
+}
+
+.hour-time, .day-date{
+  font-size:10px;
+  color:var(--muted);
+  margin-bottom:2px;
+}
+
+.hour-temp, .day-temp{
+  font-size:15px;
+  font-weight:760;
+  margin:2px 0 3px;
+  line-height:1.05;
+}
+
+.small{
+  font-size:10px;
+  color:var(--muted);
+  line-height:1.15;
+}
+
+.svgbox{
+  width:100%;
+  height:122px;
+  margin-top:4px;
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:13px;
+  background:rgba(7,14,24,.10);
+  padding:5px;
+}
+
+.chart-caption{
+  margin-top:4px;
+  font-size:10px;
+  color:var(--muted);
+  line-height:1.2;
+}
+
+.sunbar-wrap{margin-top:8px}
+.sunbar{
+  height:10px;
+  border-radius:999px;
+  overflow:hidden;
+  background:rgba(255,255,255,.08);
+  border:1px solid rgba(255,255,255,.10);
+  position:relative;
+}
+.sunfill{
+  position:absolute; inset:0 auto 0 0; width:0%;
+  background:linear-gradient(90deg, rgba(255,188,95,.40), rgba(255,235,150,.68));
+}
+.sunmarker{
+  position:absolute; top:-2px; width:14px; height:14px; border-radius:999px;
+  background:rgba(255,245,190,.92); box-shadow:0 0 12px rgba(255,225,120,.42);
+  transform:translateX(-50%);
+}
+
+.footer{
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  flex-wrap:wrap;
+  color:var(--muted);
+  font-size:11px;
+}
+
+@keyframes drift{
+  from{transform:translateX(-18vw)}
+  to{transform:translateX(118vw)}
+}
+@keyframes rainMove{
+  0%{transform:translateY(-30px)}
+  100%{transform:translateY(120px)}
+}
+@keyframes twinkle{
+  0%,100%{opacity:.62}
+  50%{opacity:.88}
+}
+@keyframes lightningFlash{
+  0%,92%,100%{opacity:0}
+  93.1%{opacity:.40;background:rgba(255,255,255,.13)}
+  93.5%{opacity:0}
+  94.4%{opacity:.58;background:rgba(255,255,255,.18)}
+  95.2%{opacity:0}
+}
+
+@media (max-width:1220px){
+  body{overflow:auto}
+  .grid-main{grid-template-columns:1fr}
+  .grid-wide{grid-template-columns:1fr}
+  .forecast-grid-12{grid-template-columns:repeat(6, minmax(0, 1fr))}
+  .forecast-grid-5{grid-template-columns:repeat(5, minmax(0, 1fr))}
+}
+
+@media (max-width:780px){
+  .quick-grid{grid-template-columns:1fr 1fr}
+  .forecast-grid-12{grid-template-columns:repeat(4, minmax(0, 1fr))}
+  .forecast-grid-5{grid-template-columns:repeat(2, minmax(0, 1fr))}
+}
+
+@media (max-width:560px){
+  .quick-grid{grid-template-columns:1fr}
+  .forecast-grid-12{grid-template-columns:repeat(2, minmax(0, 1fr))}
 }
 </style>
-
 </head>
+<body class="phase-day">
+<div class="bg"></div>
+<div class="vignette"></div>
+<div class="haze"></div>
+<div class="sun-glow"></div>
+<div class="cloud-layer" id="cloudLayer"></div>
+<div class="rain-layer"></div>
+<div class="stars-layer"></div>
+<div class="lightning-layer"></div>
 
-<body>
+<main class="wrap">
+  <header>
+    <div>
+      <h1 class="title" id="title">Bulletin météo ultime</h1>
+      <p class="subtitle">Dernière mise à jour : <span id="updated">—</span> • Fraîcheur : <span id="freshness">—</span></p>
+      <div class="meta">
+        <div><strong>Projet :</strong> Station météo locale</div>
+        <div><strong>Équipe :</strong> Julien Milhet, Maëva Condé, Rémy Prayal</div>
+        <div><strong>Tuteur :</strong> M. Boiron</div>
+        <div><strong>Parcours :</strong> 3A FETES</div>
+      </div>
+    </div>
+    <div class="badges">
+      <div class="pill" id="moodPill"><span class="dot"></span><span id="moodTxt">—</span></div>
+      <div class="pill" id="statusPill"><span class="dot"></span><span id="statusTxt">—</span></div>
+      <div class="pill" id="aqiPill"><span class="dot"></span><span id="aqiTxt">AQI —</span></div>
+    </div>
+  </header>
 
-<div class="container">
+  <section class="grid-main">
+    <div class="card hero">
+      <div class="label">Conditions actuelles</div>
+      <div class="headline" id="etat">—</div>
+      <div class="value-big"><span id="temp">—</span><span class="unit">°C</span></div>
 
-<h1 id="title">Bulletin météo</h1>
+      <div class="row"><span>Ressenti</span><span><strong id="appTemp">—</strong> °C</span></div>
+      <div class="row"><span>Jour / nuit</span><span><strong id="isDayTxt">—</strong></span></div>
+      <div class="row"><span>Vent</span><span><strong id="wind">—</strong> km/h • rafales <strong id="gust">—</strong> km/h</span></div>
+      <div class="row"><span>Direction</span><span><strong id="wdirTxt">—</strong> (<span id="wdirDeg">—</span>°)</span></div>
 
-<div class="label">Température actuelle</div>
-<div class="value" id="temp">...</div>
+      <div class="kpi2">
+        <div class="mini">
+          <div class="label">Atmosphère</div>
+          <div class="row"><span>Humidité</span><span><strong id="rh">—</strong> %</span></div>
+          <div class="row"><span>Pression</span><span><strong id="p">—</strong> hPa</span></div>
+          <div class="row"><span>Visibilité</span><span><strong id="vis">—</strong> km</span></div>
+          <div class="row"><span>Nuages</span><span><strong id="cloud">—</strong> %</span></div>
+          <div class="row"><span>Pluie</span><span><strong id="rain">—</strong> mm</span></div>
+        </div>
+        <div class="mini">
+          <div class="label">Soleil</div>
+          <div class="row"><span>UV</span><span><strong id="uv">—</strong></span></div>
+          <div class="row"><span>Irradiance</span><span><strong id="sw">—</strong> W/m²</span></div>
+          <div class="row"><span>Direct</span><span><strong id="dir">—</strong> W/m²</span></div>
+          <div class="row"><span>Diffuse</span><span><strong id="dif">—</strong> W/m²</span></div>
+          <div class="row"><span>Code météo</span><span><strong id="wcode">—</strong></span></div>
+        </div>
+      </div>
 
-<div class="label">Vent</div>
-<div id="wind">...</div>
+      <div class="advice">
+        <strong>Conseil :</strong> <span id="advice">—</span>
+      </div>
+    </div>
 
-<div class="label">Humidité</div>
-<div id="rh">...</div>
+    <div class="card">
+      <h3>Cycle solaire</h3>
+      <div class="row"><span>Lever</span><span><strong id="sunrise">—</strong></span></div>
+      <div class="row"><span>Coucher</span><span><strong id="sunset">—</strong></span></div>
+      <div class="row"><span>Progression</span><span><strong id="sunProgressTxt">—</strong></span></div>
 
-<div class="label">Conditions</div>
-<div id="etat">...</div>
+      <div class="sunbar-wrap">
+        <div class="sunbar">
+          <div class="sunfill" id="sunfill"></div>
+          <div class="sunmarker" id="sunmarker" style="left:0%"></div>
+        </div>
+      </div>
 
-<br>
+      <div class="row" style="margin-top:10px;"><span>Mini jour</span><span><strong id="tminToday">—</strong> °C</span></div>
+      <div class="row"><span>Maxi jour</span><span><strong id="tmaxToday">—</strong> °C</span></div>
+      <div class="row"><span>Risque pluie</span><span><strong id="ppmaxToday">—</strong> %</span></div>
+      <div class="row"><span>Vent max</span><span><strong id="wmaxToday">—</strong> km/h</span></div>
 
-<div id="updated"></div>
+      <div class="quick-grid">
+        <div class="quick">
+          <div class="t">Maintenant</div>
+          <div class="w" id="qNowLabel">—</div>
+          <div class="n"><span id="qNowTemp">—</span>°</div>
+        </div>
+        <div class="quick">
+          <div class="t">Dans 3 h</div>
+          <div class="w" id="q3Label">—</div>
+          <div class="n"><span id="q3Temp">—</span>°</div>
+        </div>
+        <div class="quick">
+          <div class="t">Ce soir</div>
+          <div class="w" id="qEveningLabel">—</div>
+          <div class="n"><span id="qEveningTemp">—</span>°</div>
+        </div>
+        <div class="quick">
+          <div class="t">Demain</div>
+          <div class="w" id="qTomorrowLabel">—</div>
+          <div class="n"><span id="qTomorrowTemp">—</span>°</div>
+        </div>
+      </div>
+    </div>
 
-</div>
+    <div class="card">
+      <h3>Air et synthèse</h3>
+      <div class="row"><span>Résumé</span><span><strong id="summary">—</strong></span></div>
+      <div class="row"><span>Heure data</span><span><strong id="timeLocal">—</strong></span></div>
+      <div class="row"><span>Coordonnées</span><span><strong id="coords">—</strong></span></div>
+      <div class="row"><span>Source</span><span><strong id="src">—</strong></span></div>
+      <div class="row"><span>API météo</span><span><strong id="apiStatus">—</strong></span></div>
+      <div class="row"><span>Dernière erreur</span><span><strong id="lastError">—</strong></span></div>
+
+      <div class="kpi4">
+        <div class="mini">
+          <div class="label">AQI européen</div>
+          <div class="num" id="aqi">—</div>
+          <div class="small" id="aqiLabel">—</div>
+        </div>
+        <div class="mini">
+          <div class="label">PM2.5</div>
+          <div class="num" id="pm25">—</div>
+          <div class="small">µg/m³</div>
+        </div>
+        <div class="mini">
+          <div class="label">PM10</div>
+          <div class="num" id="pm10">—</div>
+          <div class="small">µg/m³</div>
+        </div>
+        <div class="mini">
+          <div class="label">NO₂ / O₃</div>
+          <div class="small">NO₂ <strong id="no2">—</strong> • O₃ <strong id="o3">—</strong></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="grid-wide">
+    <div class="card">
+      <h3>Prévisions horaires 24 h</h3>
+      <div class="forecast-grid-12" id="hourlyCards"></div>
+    </div>
+    <div class="card">
+      <h3>Prévisions 5 jours</h3>
+      <div class="forecast-grid-5" id="dailyCards"></div>
+    </div>
+  </section>
+
+  <section class="grid-wide">
+    <div class="card">
+      <h3>Température / pluie</h3>
+      <div class="svgbox" id="chartTempRain"></div>
+      <div class="chart-caption">Courbe blanche = température prévue en °C. Barres claires = pluie prévue en mm. Repères horizontaux : début, milieu et fin des 24 prochaines heures.</div>
+    </div>
+    <div class="card">
+      <h3>Nuages / vent</h3>
+      <div class="svgbox" id="chartCloudWind"></div>
+      <div class="chart-caption">Zone claire = couverture nuageuse en %. Courbe blanche = vitesse du vent en km/h. Le graphique montre surtout l’évolution au fil des 24 prochaines heures.</div>
+    </div>
+  </section>
+
+  <div class="footer">
+    <span id="clock">—</span>
+    <span>Rafraîchissement page : 60 s • Données : 5 min • GitHub Pages</span>
+  </div>
+</main>
 
 <script src="script.js"></script>
-
 </body>
 </html>
