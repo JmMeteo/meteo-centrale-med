@@ -367,6 +367,13 @@ function renderChartTempRain(hourly) {
     <text x="${width-86}" y="36" font-size="9" fill="rgba(255,255,255,.72)">Pluie max ${rainMax ?? "—"} mm</text>
 
     <line x1="0" y1="${height-18}" x2="${width}" y2="${height-18}" stroke="rgba(255,255,255,.10)" />
+    <line x1="0" y1="${height-18}" x2="0" y2="${height-14}" stroke="rgba(255,255,255,.18)" />
+    <line x1="${width/2}" y1="${height-18}" x2="${width/2}" y2="${height-14}" stroke="rgba(255,255,255,.18)" />
+    <line x1="${width}" y1="${height-18}" x2="${width}" y2="${height-14}" stroke="rgba(255,255,255,.18)" />
+    <text x="0" y="${height-4}" font-size="9" fill="rgba(255,255,255,.72)">0 h</text>
+    <text x="${(width/2)-10}" y="${height-4}" font-size="9" fill="rgba(255,255,255,.72)">12 h</text>
+    <text x="${width-20}" y="${height-4}" font-size="9" fill="rgba(255,255,255,.72)">24 h</text>
+
     ${rainBars}
     <polyline points="${tempLine}" fill="none" stroke="rgba(255,255,255,.95)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>`;
@@ -399,6 +406,13 @@ function renderChartCloudWind(hourly) {
     <text x="${width-92}" y="36" font-size="9" fill="rgba(255,255,255,.72)">Nuages max ${cloudMax ?? "—"} %</text>
 
     <line x1="0" y1="${height-18}" x2="${width}" y2="${height-18}" stroke="rgba(255,255,255,.10)" />
+    <line x1="0" y1="${height-18}" x2="0" y2="${height-14}" stroke="rgba(255,255,255,.18)" />
+    <line x1="${width/2}" y1="${height-18}" x2="${width/2}" y2="${height-14}" stroke="rgba(255,255,255,.18)" />
+    <line x1="${width}" y1="${height-18}" x2="${width}" y2="${height-14}" stroke="rgba(255,255,255,.18)" />
+    <text x="0" y="${height-4}" font-size="9" fill="rgba(255,255,255,.72)">0 h</text>
+    <text x="${(width/2)-10}" y="${height-4}" font-size="9" fill="rgba(255,255,255,.72)">12 h</text>
+    <text x="${width-20}" y="${height-4}" font-size="9" fill="rgba(255,255,255,.72)">24 h</text>
+
     <polygon points="${cloudArea}" fill="rgba(255,255,255,.14)"></polygon>
     <polyline points="${windLine}" fill="none" stroke="rgba(255,255,255,.92)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
   </svg>`;
@@ -413,7 +427,6 @@ function renderHourlyCards(hourly) {
     const div = document.createElement("div");
     div.className = "hour-card";
     const code = h.weather_code;
-
     div.innerHTML = `
       <div class="hour-time">${formatHourLabel(h.time)}</div>
       <div class="hour-temp">${iconForCode(code, 1)} ${h.temp_c ?? "—"}°</div>
@@ -428,11 +441,9 @@ function renderHourlyCards(hourly) {
 function renderDailyCards(days) {
   const holder = document.getElementById("dailyCards");
   holder.innerHTML = "";
-
   days.slice(0, 5).forEach((d, idx) => {
     const div = document.createElement("div");
     div.className = "day-card";
-
     div.innerHTML = `
       <div class="day-date">${idx === 0 ? "Aujourd’hui" : formatDateLabel(d.date)}</div>
       <div class="day-temp">${iconForCode(d.weather_code, 1)} ${d.tmax_c ?? "—"}°</div>
@@ -592,9 +603,11 @@ function transformData(weather, air) {
 async function load() {
   try {
     const weatherResponse = await fetch(buildWeatherUrl(), { cache: "no-store" });
+    if (!weatherResponse.ok) throw new Error("Erreur météo " + weatherResponse.status);
     const weather = await weatherResponse.json();
 
     const airResponse = await fetch(buildAirUrl(), { cache: "no-store" });
+    if (!airResponse.ok) throw new Error("Erreur air " + airResponse.status);
     const air = await airResponse.json();
 
     const d = transformData(weather, air);
@@ -611,7 +624,7 @@ async function load() {
     const fetched = d.fetched_at ? new Date(d.fetched_at) : null;
     if (fetched && !Number.isNaN(fetched.getTime())) {
       setText("updated", fetched.toLocaleString("fr-FR"));
-      setText("freshness", "0 min");
+      setText("freshness", "1 min");
       setStatusPill("ok", "OK");
     } else {
       setText("updated", "—");
