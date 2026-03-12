@@ -74,7 +74,7 @@ meteo-centrale-med/
 
 index.html  
 script.js  
-README.md
+Lire.md
 
 ## Source des données
 
