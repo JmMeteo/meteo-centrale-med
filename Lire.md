@@ -1,6 +1,6 @@
 # Météo Centrale Méditerranée
 
-Application web de bulletin météo interactif pour Centrale Méditerranée (Marseille).
+Application web de bulletin météo interactif pour Centrale Méditerranée ( Campus de Marseille).
 
 ## Site en ligne
 
@@ -17,6 +17,8 @@ Ce projet permet également d'expérimenter :
 - la récupération et le traitement de données en temps réel
 - l'affichage dynamique dans une interface web
 - l'hébergement via GitHub Pages
+
+L'objectif ultime est de pouvoir joindre les datas de la station météo du campus.
 
 ## Localisation
 
@@ -59,7 +61,7 @@ Le projet récupère notamment les indicateurs suivants :
 - prévisions sur plusieurs jours
 - indicateurs environnementaux
 - mise à jour automatique des données
-- interface dynamique
+- interface dynamique (météo et cycle du jour)
 
 ## Fréquence de mise à jour
 
